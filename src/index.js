@@ -78,11 +78,18 @@ function encodeFill(face) {
         return face.texture;
     }
 
-    return -Math.floor((face.r << 10) / 8 + (face.g << 5) / 8 + face.b / 8) - 1;
+    return -Math.floor(
+        ((face.r / 8) << 10) |
+        ((face.g / 8) << 5) |
+        ((face.b / 8))
+    ) - 1;
 }
 
+//const encoded = encodeFill({ r: 248, g: 248, b: 248 });
+//console.log(decodeFill(encoded));
+
 function encodeRGB(channel) {
-    return (channel / 255).toFixed(6);
+    return (channel / 248).toFixed(6);
 }
 
 class Model {
