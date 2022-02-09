@@ -46,6 +46,10 @@ class Models {
         return this.getModelByName(this.modelNames[id]);
     }
 
+    getModels() {
+        return this.models.values();
+    }
+
     setModel(name, model) {
         model.name = name;
         this.models.set(name, model);
