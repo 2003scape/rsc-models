@@ -1,47 +1,24 @@
-const MTLFile = require('mtl-file-parser');
 const OBJFile = require('obj-file-parser');
 const { JagArchive } = require('@2003scape/rsc-archiver');
 
 const MAGIC_TRANSPARENT = 32767; // max short
 
-const TEXTURE_UVS = [
+// tris and quads can use the same coordinates each time
+const TEXTURE_UVS = {
     // TODO make sure this is right
-    // 3
-    [
+    3: [
         { u: 1, v: 1 },
         { u: 0, v: 1 },
         { u: 0, v: 0 },
     ],
 
-    // 4 (rectangle)
-    [
+    4: [
         { u: 1, v: 1 },
         { u: 0, v: 1 },
         { u: 0, v: 0 },
         { u: 1, v: 0 }
-    ],
-
-    // 6 (hexagon)
-    [
-        { u: 0, v: 0 },
-        { u: 1, v: 0 },
-        { u: 1 - 1 / 6, v: 2 / 3 },
-        { u: 2 / 3, v: 1 },
-        { u: 1 / 3, v: 1 },
-        { u: 1 / 6, v: 2 / 3 }
-    ],
-
-    // 7 (heptagon) (coffin)
-    [
-        { u: 1 / 6, v: 2 / 3 },
-        { u: 0, v: 0 },
-        { u: 0.18, v: 0 },
-        { u: 1, v: 0 },
-        { u: 1 - 1 / 6, v: 2 / 3 },
-        { u: 2 / 3, v: 1 },
-        { u: 1 / 3, v: 1 }
     ]
-];
+};
 
 function encodeVertex(vertex) {
     return (vertex / 100).toFixed(6);
@@ -85,11 +62,67 @@ function encodeFill(face) {
     ) - 1;
 }
 
-//const encoded = encodeFill({ r: 248, g: 248, b: 248 });
-//console.log(decodeFill(encoded));
-
 function encodeRGB(channel) {
     return (channel / 248).toFixed(6);
+}
+
+function getMinPlane(vertices, plane) {
+    return Math.min(
+        ...vertices.map((vertex) => {
+            return vertex[plane];
+        })
+    );
+}
+
+function getMaxPlane(vertices, plane) {
+    return Math.max(
+        ...vertices.map((vertex) => {
+            return vertex[plane];
+        })
+    );
+}
+
+// find the most-obvious 2D shape out of a face by creating a 2D polygon
+// mapping two of the three planes (either (x, y), (x, z), (y, z))
+function unwrapUVs(vertices) {
+    console.log(vertices);
+
+    const min = { x: 0, y: 0, z: 0 };
+    const max = { x: 0, y: 0, z: 0 };
+    const length = { x: 0, y: 0, z: 0 };
+
+    for (const plane of ['x', 'y', 'z']) {
+        min[plane] = getMinPlane(vertices, plane);
+        max[plane] = getMaxPlane(vertices, plane);
+        length[plane] = max[plane] - min[plane];
+    }
+
+    let uPlane = null;
+    let vPlane = null;
+
+    if (length.x < length.y && length.x < length.z) {
+        uPlane = 'y';
+        vPlane = 'z';
+    } else if (length.y < length.x && length.y < length.z) {
+        uPlane = 'z';
+        vPlane = 'x';
+    } else if (length.z < length.x && length.z < length.y) {
+        uPlane = 'x';
+        vPlane = 'y';
+    } else {
+        throw new Error("unable to unwrap UVs (can't figure out orientation)");
+    }
+
+    const uvs = [];
+
+    for (const vertex of vertices) {
+        const u = Math.abs(vertex[uPlane] - min[uPlane]) / length[uPlane];
+        const v = Math.abs(vertex[vPlane] - min[vPlane]) / length[vPlane];
+
+        uvs.push({ u, v });
+    }
+
+    return uvs;
 }
 
 class Model {
@@ -209,13 +242,6 @@ class Model {
         return model;
     }
 
-    static fromWavefront(models, objFile, mtlFile) {
-        const model = new Model(models);
-        const mtl = new MTLFile(mtlFile).parse();
-        const obj = new OBJFile(objFile).parse();
-        console.log(obj);
-    }
-
     getOb3() {
         const numVertices = this.vertices.length;
         const numFaces = this.faces.length;
@@ -290,7 +316,8 @@ class Model {
         const lines = [
             'newmtl default',
             'Kd 1.000000 0.000000 1.000000',
-            'd 0.000000\n'
+            'd 0.000000',
+            ''
         ];
 
         for (const [fill, i] of this.fillIDs.entries()) {
@@ -318,35 +345,25 @@ class Model {
         return lines.join('\n');
     }
 
-    getObjModel(front = true) {
-        const lines = ['', `o ${this.name}_${front ? 'front' : 'back'}`];
+    getObjModel(front = false) {
+        const objLines = ['', `o ${this.name}_${front ? 'front' : 'back'}`];
 
         for (const { x, y, z } of this.vertices) {
-            lines.push(
+            objLines.push(
                 `v ${encodeVertex(x)} ${encodeVertex(-y)} ${encodeVertex(z)}`
             );
         }
 
-        lines.push('');
+        objLines.push('');
 
-        // { faceVerticesLength: textureCoordinateIndex }
-        const UV_OFFSETS = {};
-        let uvOffset = 0;
-
-        for (const uvs of TEXTURE_UVS) {
-            UV_OFFSETS[uvs.length] = uvOffset;
-            uvOffset += uvs.length;
-
-            lines.push(`# used for ${uvs.length}-vertex faces`);
-
-            for (const { u, v } of uvs) {
-                lines.push(`vt ${u.toFixed(6)} ${v.toFixed(6)}`);
-            }
-
-            lines.push('');
-        }
+        const uvs = [];
+        const faceLines = [];
 
         let lastMaterial = -1;
+
+        if (!front) {
+            this.uvOffset = 1;
+        }
 
         for (const { vertices, fillFront, fillBack } of this.faces) {
             const fill = front ? fillFront : fillBack;
@@ -356,11 +373,21 @@ class Model {
 
                 if (materialID !== lastMaterial) {
                     lastMaterial = materialID;
-                    lines.push(`usemtl material_${materialID}`);
+                    faceLines.push(`usemtl material_${materialID}`);
+                }
+
+                if (fill.texture) {
+                    if (vertices.length <= 4) {
+                        uvs.push(...TEXTURE_UVS[vertices.length]);
+                    } else {
+                        uvs.push(...unwrapUVs(vertices.map((index) => {
+                            return this.vertices[index];
+                        })));
+                    }
                 }
             } else {
                 if (lastMaterial !== 'default') {
-                    lines.push('usemtl default');
+                    faceLines.push('usemtl default');
                     lastMaterial = 'default';
                 }
             }
@@ -368,39 +395,44 @@ class Model {
             let line = 'f ';
 
             for (const [i, vertexIndex] of vertices.entries()) {
+                // TODO can we re-use the vertices from the first model?
                 let index = vertexIndex + (front ? this.vertices.length : 0);
                 line += `${index + 1}`;
 
-                if (fill && fill.texture && vertices.length !== 5) {
-                    let textureCoordsIndex =
-                        i + 1 + UV_OFFSETS[vertices.length];
-
-                    line += `/${textureCoordsIndex}`;
-
-                    /*
-                    if (vertices.length === 7 && !/^coffin/i.test(this.name) && this.name !== 'doubledoorsopen' && this.name !== 'doubledoorsclosed' && this.name !== 'hazeeltomb' && this.name !== 'hillsidedoor') {
-                        console.error('HELP ' + vertices.length + ' ' + this.textureNames[fill.texture]);
-                        process.exit(1);
-                    }*/
+                if (fill && fill.texture) {
+                    line += `/${this.uvOffset + i}`;
                 }
 
                 line += ' ';
             }
 
-            lines.push(line.trim());
+            if (fill && fill.texture) {
+                this.uvOffset += vertices.length;
+            }
+
+            faceLines.push(line.trim());
         }
 
-        return lines.join('\n') + '\n';
+        objLines.push(...uvs.map(({ u, v}) => {
+            return `vt ${u.toFixed(6)} ${v.toFixed(6)}`;
+        }));
+
+        objLines.push('');
+
+        objLines.push(...faceLines);
+
+        return objLines.join('\n') + '\n';
     }
 
     getObj() {
         const lines = [
             '# generated by https://github.com/2003scape/rsc-models',
-            `mtllib ${this.name}.mtl\n`
+            `mtllib ${this.name}.mtl`,
+            ''
         ];
 
-        const front = this.getObjModel();
-        const back = this.getObjModel(false);
+        const back = this.getObjModel();
+        const front = this.getObjModel(true);
 
         return (lines.join('\n') + back + front).trim();
     }
@@ -457,6 +489,9 @@ class Models {
 
     getModelById(id) {
         return this.getModelByName(this.modelNames[id]);
+    }
+
+    fromWavefront(objFile, mtlFile) {
     }
 
     toArchive() {
