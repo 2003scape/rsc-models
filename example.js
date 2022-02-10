@@ -8,15 +8,18 @@ config.loadArchive(fs.readFileSync('./config85.jag'));
 const models = new Models(config);
 models.loadArchive(fs.readFileSync('./models36.jag'));
 
-const model = models.getModelByName('obelisk');
-console.log(model.getMtl());
+// dumping wavefront
+const tree = models.getModelByName('tree');
 
-/*
-const model = models.fromWavefront(
+fs.writeFileSync('./tree.obj', tree.getObj());
+fs.writeFileSync('./tree.mtl', tree.getMtl());
+
+// loading external wavefront
+const yoshi = models.fromWavefront(
     fs.readFileSync('./yoshi.obj', 'utf8'),
     fs.readFileSync('./yoshi.mtl', 'utf8')
 );
 
-models.setModel('tree', model);
+models.setModel('tree', yoshi);
 
-fs.writeFileSync('./models36.2.jag', models.toArchive());*/
+fs.writeFileSync('./models37.jag', models.toArchive());

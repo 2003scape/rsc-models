@@ -65,17 +65,17 @@ function encodeRGB(channel) {
 }
 
 class Model {
-    constructor({ textureNames }) {
+    constructor({ textureNames }, { name, vertices, faces } = {}) {
         this.textureNames = textureNames;
 
-        this.name = '';
+        this.name = name || '';
 
         // [ { x, y, z } ]
-        this.vertices = [];
+        this.vertices = vertices || [];
 
         // [ { fillFront: { r, g, b }, fillBack, intensity: 0 || 1,
         //   vertices: [ index ] } ]
-        this.faces = [];
+        this.faces = faces || [];
 
         // { { r, g, b, texture}: ID }
         this.fillIDs = new Map();
@@ -191,6 +191,10 @@ class Model {
             model.faces[i].vertices = vertices;
         }
 
+        model.faces = model.faces.filter(({ vertices }) => {
+            return vertices.length >= 3;
+        });
+
         model.updateFillIDs();
 
         return model;
@@ -302,9 +306,11 @@ class Model {
 
             const { i: illum } = parsedFill;
             lines.push(`illum ${illum}`);
+
+            lines.push('');
         }
 
-        return lines.join('\n') + '\n';
+        return lines.join('\n');
     }
 
     getObjModel(front = false) {
@@ -406,6 +412,8 @@ class Model {
     }
 
     decodeMtl(mtlFile) {
+        this.materials.clear();
+
         let material = null;
         let materialName = null;
 

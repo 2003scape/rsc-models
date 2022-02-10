@@ -47,7 +47,7 @@ class Models {
     }
 
     getModels() {
-        return this.models.values();
+        return Array.from(this.models.values());
     }
 
     setModel(name, model) {
@@ -71,4 +71,4 @@ class Models {
     }
 }
 
-module.exports = { Models };
+module.exports = { Models, Model };

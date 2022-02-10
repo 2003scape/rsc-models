@@ -8,6 +8,8 @@ const yargs = require('yargs');
 const { Config } = require('@2003scape/rsc-config');
 const { Models } = require('./');
 
+const OBJ_REGEXP = /\.obj$/i;
+
 yargs
     .scriptName('rsc-models')
     .version(pkg.version)
@@ -62,6 +64,57 @@ yargs
             } catch (e) {
                 process.exitCode = 1;
                 console.error(e);
+            }
+        }
+    )
+    .command(
+        'pack-obj <config> <archive> <files..>',
+        'pack model OBJ(s) into models jag archive',
+        (yargs) => {
+            yargs.positional('config', {
+                description: 'config jag archive',
+                type: 'string'
+            });
+
+            yargs.positional('archive', {
+                description: 'models jag archive',
+                type: 'string'
+            });
+
+            yargs.positional('files', {
+                description: 'OBJ files to add to the models archive'
+            });
+        },
+        async (argv) => {
+            try {
+                const config = new Config();
+                config.loadArchive(await fs.readFile(argv.config));
+
+                const models = new Models(config);
+                models.loadArchive(await fs.readFile(argv.archive));
+
+                for (const objFilename of argv.files) {
+                    const extName = path.extname(objFilename);
+
+                    if (!OBJ_REGEXP.test(extName)) {
+                        continue;
+                    }
+
+                    const modelName = path.basename(objFilename, extName);
+                    const mtlFilename = objFilename.replace(OBJ_REGEXP, '.mtl');
+
+                    const objFile = await fs.readFile(objFilename, 'utf8');
+                    const mtlFile = await fs.readFile(mtlFilename, 'utf8');
+
+                    const model = models.fromWavefront(objFile, mtlFile);
+
+                    models.setModel(modelName, model);
+                }
+
+                await fs.writeFile(argv.archive, models.toArchive());
+            } catch (e) {
+                console.error(e);
+                process.exit(1);
             }
         }
     )
