@@ -15,7 +15,9 @@
     "rsc",
     "3d",
     "models",
-    "textures"
+    "wavefront",
+    "obj",
+    "mtl"
   ],
   "author": "2003Scape Team",
   "license": "AGPL-3.0+",
@@ -25,10 +27,9 @@
   "homepage": "https://github.com/2003scape/rsc-models#readme",
   "dependencies": {
     "@2003scape/rsc-archiver": "^1.1.1",
-    "mtl-file-parser": "^0.3.0",
-    "obj-file-parser": "^0.5.3"
-  },
-  "devDependencies": {
-    "@2003scape/rsc-config": "^1.0.1"
+    "@2003scape/rsc-config": "^1.0.1",
+    "mkdirp": "^1.0.4",
+    "obj-file-parser": "^0.5.3",
+    "yargs": "^16.2.0"
   }
 }
