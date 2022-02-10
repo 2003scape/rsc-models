@@ -6,17 +6,16 @@ const MAGIC_TRANSPARENT = 32767; // max short
 
 // tris and quads can use the same coordinates each time
 const TEXTURE_UVS = {
-    // TODO make sure this is right
     3: [
-        { u: 1, v: 1 },
         { u: 0, v: 1 },
-        { u: 0, v: 0 }
+        { u: 1, v: 0.5 },
+        { u: 0, v: 0 },
     ],
     4: [
-        { u: 1, v: 1 },
         { u: 0, v: 1 },
-        { u: 0, v: 0 },
-        { u: 1, v: 0 }
+        { u: 1, v: 1 },
+        { u: 1, v: 0 },
+        { u: 0, v: 0 }
     ]
 };
 
@@ -303,13 +302,9 @@ class Model {
 
             const { i: illum } = parsedFill;
             lines.push(`illum ${illum}`);
-
-            if (i < this.fillIDs.size - 1) {
-                lines.push('');
-            }
         }
 
-        return lines.join('\n');
+        return lines.join('\n') + '\n';
     }
 
     getObjModel(front = false) {
@@ -407,7 +402,7 @@ class Model {
         const back = this.getObjModel();
         const front = this.getObjModel(true);
 
-        return (lines.join('\n') + back + front).trim();
+        return lines.join('\n') + back + front;
     }
 
     decodeMtl(mtlFile) {

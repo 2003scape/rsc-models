@@ -17,7 +17,7 @@ function getMaxPlane(vertices, plane) {
 // find the most-obvious 2D shape out of a face by creating a 2D polygon
 // mapping two of the three planes (either (x, y), (x, z), (y, z))
 function unwrapUVs(vertices) {
-    console.log(vertices);
+    //console.log(vertices);
 
     const min = { x: 0, y: 0, z: 0 };
     const max = { x: 0, y: 0, z: 0 };
