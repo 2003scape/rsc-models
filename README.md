@@ -3,6 +3,21 @@
 [wavefront .obj and .mtl](https://en.wikipedia.org/wiki/Wavefront_.obj_file)
 files. supports automatic UV unwrapping. works with blender import and export.
 
+[three.js model viewer](https://2003scape.github.io/rsc-models)
+
+*models dumped and loaded into blender:*
+
+![altar model](./doc/altar-blender.png)
+![range model](./doc/range-blender.png)
+![fire model](./doc/fire-blender.png)
+![chest model](./doc/chest-blender.png)
+
+
+*models exported from blender and loaded into the game:*
+
+![n64 table model](./doc/n64-game.png)
+![yoshi and gnome trees](./doc/yoshi-gnome-game.png)
+
 ## install
 
     $ npm install @2003scape/rsc-models # -g for CLI program
@@ -21,6 +36,9 @@ Options:
   --help     Show help                                                 [boolean]
   --version  Show version number                                       [boolean]
 ```
+
+    $ rsc-models dump-obj config85.jag models36.jag -o models36-obj/
+    $ rsc-models pack-obj config85.jag models37 yoshi.obj n64.obj
 
 ## example
 ```javascript
@@ -52,11 +70,15 @@ fs.writeFileSync('./models37.jag', models.toArchive());
 ```
 
 ## api
-### models = new Models({ models })
-create a new models (de)serializer instance.
+### models = new Models({ objects, textures }, extraNames = ANIMATED\_MODELS)
+create a new models (de)serializer instance. extraNames are an array of model
+names that aren't stored in the config archive's objects cache.
 
 ### models.loadArchive(buffer)
 loads a models jag archive buffer.
+
+### model.modelNames
+array of valid model names.
 
 ### models.getModels()
 return an array of all `Model` instances.
@@ -111,7 +133,10 @@ return model materials string in wavefront .mtl format.
 ### model.toJSON()
 return public serializable properties.
 
-## fun facts (model bugs)
+### ANIMATED\_MODELS
+array of hard-coded model names that aren't in config archive.
+
+## model bugs
 
 the following models have faces with less than three vertices:
 
@@ -133,6 +158,34 @@ the following models have faces with less than three vertices:
  * cave snaptrap
  * cave snaptrapa
  * rocksteps
+
+there are also 25 models that are never loaded in the game (hashed):
+
+ * 1037362809
+ * -1060436729
+ * -1115958269
+ * -1220733691
+ * 1227393374
+ * -1263331649
+ * 1347842162
+ * -1430585029
+ * 1512310831
+ * 1526156672
+ * 1540002513
+ * 1657318544
+ * 1721021053
+ * 2142891767
+ * -380606436
+ * 515450526
+ * 529296367
+ * 538300861
+ * 550294861
+ * 564140702
+ * 587507422
+ * -669716258
+ * -741690938
+ * 763644315
+ * 846098451
 
 ## license
 Copyright 2022  2003Scape Team

@@ -1,8 +1,31 @@
 const Model = require('./model');
 const { JagArchive } = require('@2003scape/rsc-archiver');
 
+const ANIMATED_MODELS = [
+    'torcha2',
+    'torcha3',
+    'torcha4',
+    'skulltorcha2',
+    'skulltorcha3',
+    'skulltorcha4',
+    'firea2',
+    'firea3',
+    'fireplacea2',
+    'fireplacea3',
+    'firespell2',
+    'firespell3',
+    'lightning2',
+    'lightning3',
+    'clawspell2',
+    'clawspell3',
+    'clawspell4',
+    'clawspell5',
+    'spellcharge2',
+    'spellcharge3'
+];
+
 class Models {
-    constructor({ objects, textures }) {
+    constructor({ objects, textures }, extraNames = ANIMATED_MODELS) {
         // names of models
         this.modelNames = new Set();
 
@@ -10,7 +33,7 @@ class Models {
             this.modelNames.add(model.name);
         }
 
-        this.modelNames = Array.from(this.modelNames);
+        this.modelNames = [...extraNames, ...Array.from(this.modelNames)];
 
         // { name: Model }
         this.models = new Map();
@@ -53,6 +76,12 @@ class Models {
     setModel(name, model) {
         model.name = name;
         this.models.set(name, model);
+        this.modelNames = Array.from(this.models.keys());
+    }
+
+    removeModel(name) {
+        this.models.delete(name);
+        this.modelNames = Array.from(this.models.keys());
     }
 
     fromWavefront(objFile, mtlFile) {
@@ -71,4 +100,4 @@ class Models {
     }
 }
 
-module.exports = { Models, Model };
+module.exports = { Models, Model, ANIMATED_MODELS };

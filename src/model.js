@@ -9,7 +9,7 @@ const TEXTURE_UVS = {
     3: [
         { u: 0, v: 1 },
         { u: 1, v: 0.5 },
-        { u: 0, v: 0 },
+        { u: 0, v: 0 }
     ],
     4: [
         { u: 0, v: 1 },
@@ -259,7 +259,7 @@ class Model {
             const iFront = fillFront ? fillFront.i : -1;
             const iBack = fillBack ? fillBack.i : -1;
 
-            data[offset++] = (iFront === 0 || iBack === 0) ? 0 : 1;
+            data[offset++] = iFront === 0 || iBack === 0 ? 0 : 1;
         }
 
         const buffers = [data];
@@ -298,10 +298,13 @@ class Model {
                 const textureName = this.textureNames[parsedFill.texture];
 
                 lines.push(`map_Kd ${textureName}.png`);
+                //lines.push(`map_d ${textureName}.png`);
             } else {
                 const { r, g, b } = parsedFill;
 
-                lines.push(`Kd ${encodeRGB(r)} ${encodeRGB(g)} ${encodeRGB(b)}`);
+                lines.push(
+                    `Kd ${encodeRGB(r)} ${encodeRGB(g)} ${encodeRGB(b)}`
+                );
             }
 
             const { i: illum } = parsedFill;
@@ -399,11 +402,7 @@ class Model {
     }
 
     getObj() {
-        const lines = [
-            GENERATED_BY,
-            `mtllib ${this.name}.mtl`,
-            ''
-        ];
+        const lines = [GENERATED_BY, `mtllib ${this.name}.mtl`, ''];
 
         const back = this.getObjModel();
         const front = this.getObjModel(true);
@@ -450,7 +449,7 @@ class Model {
                 if (textureIndex < 0) {
                     throw new RangeError(
                         `texture ${textureName} not found. pack with ` +
-                        'rsc-sprites and rsc-config'
+                            'rsc-sprites and rsc-config'
                     );
                 }
 
