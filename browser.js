@@ -1,8 +1,9 @@
 const THREE = require('three');
-const fs = require('fs');
 const { Config } = require('@2003scape/rsc-config');
 const { Models, Model } = require('./src/index');
 const { hashFilename } = require('@2003scape/rsc-archiver');
+
+require('buffer');
 
 window.THREE = THREE;
 
@@ -14,6 +15,7 @@ const WIDTH = 640;
 const HEIGHT = 480;
 
 const scene = new THREE.Scene();
+scene.background = new THREE.Color(0xff00ff);
 scene.add(new THREE.AxesHelper(5));
 
 const light = new THREE.AmbientLight(0xffffff, 1);
@@ -34,100 +36,104 @@ const objLoader = new THREE.OBJLoader();
 mtlLoader.setResourcePath('/textures17-png/');
 mtlLoader.setMaterialOptions({ side: THREE.DoubleSide });
 
-const config = new Config();
-config.loadArchive(fs.readFileSync('./config85.jag'));
+(async function () {
+    const config = new Config();
+    const configRes = await fetch('./config85.jag');
+    config.loadArchive(Buffer.from(await configRes.arrayBuffer()));
 
-const models = new Models(config);
-models.loadArchive(fs.readFileSync('./models36.jag'));
+    const models = new Models(config);
+    const modelsRes = await fetch('./models36.jag');
+    models.loadArchive(Buffer.from(await modelsRes.arrayBuffer()));
 
-const { archive } = models;
+    const { archive } = models;
 
-const secretHashes = Array.from(archive.entries.keys()).filter((hash) => {
-    for (const name of models.modelNames) {
-        if (hashFilename(`${name}.ob3`) === hash) {
-            return false;
+    const secretHashes = Array.from(archive.entries.keys()).filter((hash) => {
+        for (const name of models.modelNames) {
+            if (hashFilename(`${name}.ob3`) === hash) {
+                return false;
+            }
         }
+
+        return true;
+    });
+
+    for (const hash of secretHashes) {
+        const model = Model.fromOb3(models, archive.getEntry(hash));
+        model.name = hash.toString();
+        models.setModel(model.name, model);
     }
 
-    return true;
-});
+    let object = null;
 
-for (const hash of secretHashes) {
-    const model = Model.fromOb3(models, archive.getEntry(hash));
-    model.name = hash.toString();
-    models.setModel(model.name, model);
-}
+    const modelNames = models.modelNames.sort();
 
-let object = null;
+    function setModel(name) {
+        if (modelNames.indexOf(name) < 0) {
+            return;
+        }
 
-const modelNames = models.modelNames;
+        window.location.hash = name;
 
-function setModel(name) {
-    if (modelNames.indexOf(name) < 0) {
-        return;
+        if (object) {
+            scene.remove(object);
+        }
+
+        const model = models.getModelByName(name);
+
+        const materials = mtlLoader.parse(model.getMtl());
+        objLoader.setMaterials(materials);
+
+        object = objLoader.parse(model.getObj());
+
+        scene.add(object);
     }
 
-    window.location.hash = name;
+    const modelSelect = document.getElementById('rsc-models-name');
 
-    if (object) {
-        scene.remove(object);
+    for (const modelName of modelNames) {
+        modelSelect.add(new Option(modelName, modelName));
     }
 
-    const model = models.getModelByName(name);
+    modelSelect.addEventListener('change', () => {
+        setModel(modelSelect.value);
+    });
 
-    const materials = mtlLoader.parse(model.getMtl());
-    objLoader.setMaterials(materials);
+    const hashModelName = window.location.hash.slice(1);
 
-    object = objLoader.parse(model.getObj());
+    if (hashModelName) {
+        modelSelect.value = hashModelName;
+        setModel(hashModelName);
+    } else {
+        setModel(modelNames[0]);
+    }
 
-    scene.add(object);
-}
+    const modelWrap = document.getElementById('rsc-models-model-wrap');
 
-const modelSelect = document.getElementById('rsc-models-name');
+    modelWrap.appendChild(renderer.domElement);
 
-for (const modelName of modelNames) {
-    modelSelect.add(new Option(modelName, modelName));
-}
+    const lightRange = document.getElementById('rsc-models-light');
 
-modelSelect.addEventListener('change', () => {
-    setModel(modelSelect.value);
-});
+    lightRange.value = 1.0;
 
-const hashModelName = window.location.hash.slice(1);
+    lightRange.addEventListener('change', () => {
+        light.intensity = Number(lightRange.value);
+    });
 
-if (hashModelName) {
-    modelSelect.value = hashModelName;
-    setModel(hashModelName);
-} else {
-    setModel(modelNames[0]);
-}
+    const colourInput = document.getElementById('rsc-models-background');
 
-const modelWrap = document.getElementById('rsc-models-model-wrap');
+    colourInput.value = '#ff00ff';
 
-modelWrap.appendChild(renderer.domElement);
+    colourInput.addEventListener('change', () => {
+        scene.background = new THREE.Color(
+            Number.parseInt(colourInput.value.slice(1), 16)
+        );
+    });
 
-const lightRange = document.getElementById('rsc-models-light');
+    function animate() {
+        controls.update();
+        renderer.render(scene, camera);
+        window.requestAnimationFrame(animate);
+    }
 
-lightRange.value = 1.0;
-
-lightRange.addEventListener('change', () => {
-    light.intensity = Number(lightRange.value);
-});
-
-const colourInput = document.getElementById('rsc-models-background');
-
-colourInput.value = '#000000';
-
-colourInput.addEventListener('change', () => {
-    scene.background = new THREE.Color(
-        Number.parseInt(colourInput.value.slice(1), 16)
-    );
-});
-
-function animate() {
-    controls.update();
-    renderer.render(scene, camera);
-    window.requestAnimationFrame(animate);
-}
-
-animate();
+    animate();
+})();

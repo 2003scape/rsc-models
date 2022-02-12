@@ -2,6 +2,8 @@
 (de)serialize runescape classic 3D model archives to and from
 [wavefront .obj and .mtl](https://en.wikipedia.org/wiki/Wavefront_.obj_file)
 files. supports automatic UV unwrapping. works with blender import and export.
+use [rsc-sprites](https://github.com/2003scape/rsc-sprites) to dump and pack
+textures.
 
 [three.js model viewer](https://2003scape.github.io/rsc-models)
 
@@ -38,7 +40,7 @@ Options:
 ```
 
     $ rsc-models dump-obj config85.jag models36.jag -o models36-obj/
-    $ rsc-models pack-obj config85.jag models37 yoshi.obj n64.obj
+    $ rsc-models pack-obj config85.jag models37.jag yoshi.obj n64.obj
 
 ## example
 ```javascript
@@ -159,7 +161,7 @@ the following models have faces with less than three vertices:
  * cave snaptrapa
  * rocksteps
 
-there are also 25 models that are never loaded in the game (hashed):
+there are also 25 secret models that are never loaded in the game (hashed):
 
  * 1037362809
  * -1060436729

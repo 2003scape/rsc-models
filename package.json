@@ -7,7 +7,7 @@
     "rsc-models": "./src/bin.js"
   },
   "scripts": {
-    "build-dev": "browserify -t brfs browser.js > browser.bundle.js"
+    "build-dev": "browserify browser.js > browser.bundle.js"
   },
   "repository": {
     "type": "git",
@@ -29,6 +29,7 @@
   },
   "homepage": "https://github.com/2003scape/rsc-models#readme",
   "dependencies": {
+    "buffer": "^5.2.1",
     "mkdirp": "^1.0.4",
     "obj-file-parser": "^0.5.3",
     "yargs": "^16.2.0"
@@ -36,7 +37,6 @@
   "devDependencies": {
     "@2003scape/rsc-archiver": "^1.1.1",
     "@2003scape/rsc-config": "^1.0.1",
-    "brfs": "^2.0.2",
     "browserify": "^17.0.0",
     "three": "^0.137.5"
   }
