@@ -35,7 +35,7 @@ controls.target.set(0, 1, 0);
 const mtlLoader = new THREE.MTLLoader();
 const objLoader = new THREE.OBJLoader();
 
-mtlLoader.setResourcePath('/textures17-png/');
+mtlLoader.setResourcePath('/rsc-models/textures17-png/');
 mtlLoader.setMaterialOptions({ side: THREE.DoubleSide });
 
 (async function () {
