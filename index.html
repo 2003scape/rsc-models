@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <meta charset="utf-8" />
+        <title>RuneScape Classic Model Viewer</title>
+    </head>
+    <body>
+        <div id="rsc-models-model-wrap"></div>
+        <br />
+        <div>
+            <label>
+                <em>Model Name:</em>
+                <select id="rsc-models-name"></select>
+            </label>
+        </div>
+        <div>
+            <label>
+                <em>Lighting:</em>
+                <input
+                    id="rsc-models-light"
+                    type="range"
+                    min="0.5"
+                    max="3"
+                    step="0.1"
+                    value="1.0"
+                />
+            </label>
+        </div>
+        <div>
+            <label>
+                <em>Background:</em>
+                <input
+                    id="rsc-models-background"
+                    type="color"
+                    value="#ff00ff"
+                />
+            </label>
+        </div>
+        <script src="/browser.bundle.js"></script>
+    </body>
+</html>
