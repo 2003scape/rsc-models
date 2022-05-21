@@ -348,17 +348,13 @@ class Model {
                 }
 
                 if (fill.texture) {
-                    if (vertices.length <= 4) {
-                        uvs.push(...TEXTURE_UVS[vertices.length]);
-                    } else {
-                        uvs.push(
-                            ...unwrapUVs(
-                                vertices.map((index) => {
-                                    return this.vertices[index];
-                                })
-                            )
-                        );
-                    }
+                    uvs.push(
+                        ...unwrapUVs(
+                            vertices.map((index) => {
+                                return this.vertices[index];
+                            })
+                        )
+                    );
                 }
             } else {
                 if (lastMaterial !== 'default') {
