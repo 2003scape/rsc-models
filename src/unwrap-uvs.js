@@ -1,134 +1,57 @@
-const getPlaneNormal = require('get-plane-normal');
+const glm = require('glm-js');
 
-function getMinPlane(vertices, plane) {
-    return Math.min(
-        ...vertices.map((vertex) => {
-            return vertex[plane];
-        })
-    );
+function vertexToVec3({ x, y, z }) {
+    return glm.vec3(x, y, z);
 }
 
-function getMaxPlane(vertices, plane) {
-    return Math.max(
-        ...vertices.map((vertex) => {
-            return vertex[plane];
-        })
-    );
-}
-
-function vertexToArray({ x, y, z }) {
-    return [x, y, z];
-}
-
-function arrayToVertex([x, y, z]) {
-    return { x, y, z };
-}
-
-function uvSort(uvs) {
-    const centre = { u: 0, v: 0 };
-
-    for (const vertex of uvs) {
-        centre.u += vertex.u;
-        centre.v += vertex.v;
-    }
-
-    centre.u /= uvs.length;
-    centre.v /= uvs.length;
-
-    // TODO may remove
-    //centre.u = 0.5;
-    //centre.v = 0.5;
-
-    for (const uv of uvs) {
-        uv.angle = Math.atan2(uv.v - centre.v, uv.u - centre.u);
-    }
-
-    return uvs.sort((a, b) => {
-        if (a.angle > b.angle) {
-            return -1;
-        }
-
-        if (a.angle < b.angle) {
-            return 1;
-        }
-
-        return 0;
-    });
-}
-
-// find the most-obvious 2D shape out of a face by creating a 2D polygon
-// mapping two of the three planes (either (x, y), (x, z), (y, z))
+// https://github.com/polygon-city/points-3d-to-2d
+// http://stackoverflow.com/a/26370192/997339
 function unwrapUVs(vertices) {
-    const normal = arrayToVertex(
-        getPlaneNormal(
-            [],
-            vertexToArray(vertices[0]),
-            vertexToArray(vertices[1]),
-            vertexToArray(vertices[vertices.length - 1])
-        )
-    );
+    vertices = vertices.map((vertex) => vertexToVec3(vertex));
 
-    let uPlane = 'x';
-    let vPlane = 'y';
+    const origin = vertices[0];
+    let locationX = glm.sub(vertices[1], vertices[0]);
+    const normal = glm.cross(locationX, glm.sub(vertices[2], origin));
+    const locationY = glm.normalize(glm.cross(normal, locationX));
+    locationX = glm.normalize(locationX);
 
-    if (
-        Math.abs(normal.x) > Math.abs(normal.y) &&
-        Math.abs(normal.x) > Math.abs(normal.z)
-    ) {
-        uPlane = 'z';
-        vPlane = 'y';
-    } else if (
-        Math.abs(normal.y) > Math.abs(normal.x) &&
-        Math.abs(normal.y) > Math.abs(normal.z)
-    ) {
-        uPlane = 'x';
-        vPlane = 'z';
-    } else if (
-        Math.abs(normal.z) > Math.abs(normal.x) &&
-        Math.abs(normal.z) > Math.abs(normal.y)
-    ) {
-        uPlane = 'x';
-        vPlane = 'y';
-    } else if (
-        Math.abs(normal.x) < Math.abs(normal.y) &&
-        Math.abs(normal.x) < Math.abs(normal.z)
-    ) {
-        uPlane = 'x';
-        vPlane = 'y';
-    } else if (
-        Math.abs(normal.z) < Math.abs(normal.x) &&
-        Math.abs(normal.z) < Math.abs(normal.y)
-    ) {
-        uPlane = 'z';
-        vPlane = 'y';
-    } else {
-        //throw new Error("unable to unwrap UVs (can't figure out orientation)");
-    }
+    let maxX = 0;
+    let minX = 0;
 
-    const minU = getMinPlane(vertices, uPlane);
-    const lengthU = getMaxPlane(vertices, uPlane) - minU;
+    let maxY = 0;
+    let minY = 0;
 
-    const minV = getMinPlane(vertices, vPlane);
-    const lengthV = getMaxPlane(vertices, vPlane) - minV;
+    const points = vertices.map((vertex, index) => {
+        vertex = glm.sub(vertex, origin);
 
-    const uvs = [];
+        const x = glm.dot(vertex, locationX);
+        const y = glm.dot(vertex, locationY);
 
-    for (const vertex of vertices) {
-        let u = Math.abs(vertex[uPlane] - minU) / lengthU;
-        let v = Math.abs(vertex[vPlane] - minV) / lengthV;
-
-        if (normal[uPlane] > 0) {
-            u = 1.0 - u;
+        if (index === 0 || x > maxX) {
+            maxX = x;
         }
 
-        if (normal[vPlane] < 0) {
-            v = 1.0 - v;
+        if (index === 0 || x < minX) {
+            minX = x;
         }
 
-        uvs.push({ u, v });
-    }
+        if (index === 0 || y > maxY) {
+            maxY = y;
+        }
 
-    return uvSort(uvs);
+        if (index === 0 || y < minY) {
+            minY = y;
+        }
+
+        return { x, y };
+    });
+
+    const uvs = points.map(({x, y}) => ({
+        u: +((x - minX) / (maxX - minX)).toFixed(6),
+        v: +(1 - (y - minY) / (maxY - minY)).toFixed(6)
+    }));
+
+    return uvs;
 }
 
 module.exports = unwrapUVs;

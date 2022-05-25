@@ -1,6 +1,6 @@
 {
   "name": "@2003scape/rsc-models",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "description": "(de)serialize runescape classic 3D models",
   "main": "./src/index.js",
   "bin": {
@@ -29,13 +29,13 @@
   },
   "homepage": "https://github.com/2003scape/rsc-models#readme",
   "dependencies": {
-    "buffer": "^5.2.1",
-    "get-plane-normal": "^1.0.0",
+    "glm-js": "^0.0.6-c",
     "mkdirp": "^1.0.4",
     "obj-file-parser": "^0.5.3",
     "yargs": "^16.2.0"
   },
   "devDependencies": {
+    "buffer": "^5.2.1",
     "@2003scape/rsc-archiver": "^1.1.1",
     "@2003scape/rsc-config": "^1.0.1",
     "browserify": "^17.0.0",

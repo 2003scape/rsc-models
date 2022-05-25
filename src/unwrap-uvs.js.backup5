@@ -1,0 +1,171 @@
+const DEBUG = true;
+
+const getPlaneNormal = require('get-plane-normal');
+
+function getMinPlane(vertices, plane) {
+    return Math.min(
+        ...vertices.map((vertex) => {
+            return vertex[plane];
+        })
+    );
+}
+
+function getMaxPlane(vertices, plane) {
+    return Math.max(
+        ...vertices.map((vertex) => {
+            return vertex[plane];
+        })
+    );
+}
+
+function vertexToArray({ x, y, z }) {
+    return [x, y, z];
+}
+
+function arrayToVertex([x, y, z]) {
+    return { x, y, z };
+}
+
+function uvSort(uvs) {
+    const centre = { u: 0, v: 0 };
+
+    for (const vertex of uvs) {
+        centre.u += vertex.u;
+        centre.v += vertex.v;
+    }
+
+    centre.u /= uvs.length;
+    centre.v /= uvs.length;
+
+    // TODO may remove
+    centre.u = 0.5;
+    centre.v = 0.5;
+
+    for (const [index, uv] of uvs.entries()) {
+        uv.index = index;
+        uv.angle = Math.atan2(uv.v - centre.v, uv.u - centre.u);
+        //uv.angle = Math.atan2(uv.u - centre.u, uv.v - centre.v);
+    }
+
+    return uvs.sort((a, b) => {
+        if (a.angle > b.angle) {
+            return -1;
+        }
+
+        if (a.angle < b.angle) {
+            return 1;
+        }
+
+        return 0;
+    });
+}
+
+// find the most-obvious 2D shape out of a face by creating a 2D polygon
+// mapping two of the three planes (either (x, y), (x, z), (y, z))
+function unwrapUVs(vertices) {
+    const normal = arrayToVertex(
+        getPlaneNormal(
+            [],
+            vertexToArray(vertices[0]),
+            vertexToArray(vertices[1]),
+            vertexToArray(vertices[vertices.length - 1])
+        )
+    );
+
+    const length = { x: 0, y: 0, z: 0 };
+
+    for (const plane of ['x', 'y', 'z']) {
+        const min = getMinPlane(vertices, plane);
+        const max = getMaxPlane(vertices, plane);
+        length[plane] = max - min;
+    }
+
+    let uPlane = 'x';
+    let vPlane = 'y';
+
+    if (
+        Math.abs(normal.x) > Math.abs(normal.y) &&
+        Math.abs(normal.x) > Math.abs(normal.z)
+    ) {
+        uPlane = 'z';
+        vPlane = 'y';
+    } else if (
+        Math.abs(normal.y) > Math.abs(normal.x) &&
+        Math.abs(normal.y) > Math.abs(normal.z)
+    ) {
+        uPlane = 'x';
+        vPlane = 'z';
+    } else if (
+        Math.abs(normal.z) > Math.abs(normal.x) &&
+        Math.abs(normal.z) > Math.abs(normal.y)
+    ) {
+        uPlane = 'x';
+        vPlane = 'y';
+    } else if (
+        Math.abs(normal.x) < Math.abs(normal.y) &&
+        Math.abs(normal.x) < Math.abs(normal.z)
+    ) {
+        uPlane = 'x';
+        vPlane = 'y';
+    } else if (
+        Math.abs(normal.z) < Math.abs(normal.x) &&
+        Math.abs(normal.z) < Math.abs(normal.y)
+    ) {
+        uPlane = 'z';
+        vPlane = 'y';
+    } else {
+        //throw new Error("unable to unwrap UVs (can't figure out orientation)");
+    }
+
+    const minU = getMinPlane(vertices, uPlane);
+    const lengthU = getMaxPlane(vertices, uPlane) - minU;
+
+    const minV = getMinPlane(vertices, vPlane);
+    const lengthV = getMaxPlane(vertices, vPlane) - minV;
+
+    let uvs = [];
+
+    for (const vertex of vertices) {
+        let u = Math.abs(vertex[uPlane] - minU) / lengthU;
+        let v = Math.abs(vertex[vPlane] - minV) / lengthV;
+
+        if (normal[uPlane] > 0) {
+            u = 1.0 - u;
+        }
+
+        /*if (normal[vPlane] < 0) {
+            v = 1.0 - v;
+        }*/
+
+        uvs.push({ u, v });
+    }
+
+    /*const temp = uPlane;
+    uPlane = vPlane;
+    vPlane = temp;*/
+
+    if (uvs.length <= 4) {
+        uvs = uvSort(uvs);
+    }
+
+    if (uvs[0].u > uvs[0].v) {
+        for (const uv of uvs) {
+            const tempU = uv.u;
+            uv.u = uv.v;
+            uv.v = tempU;
+        }
+    }
+
+    if (DEBUG) {
+        console.log(JSON.stringify(vertices));
+        console.log('length=',length);
+        console.log('normal=', normal);
+        console.log('(u, v)=',uPlane, vPlane);
+        console.log('uvs=',uvs);
+        console.log();
+    }
+
+    return uvs;
+}
+
+module.exports = unwrapUVs;
